@@ -4,7 +4,7 @@ import useDashboardStats from '../data/dashboardStats'
 import LiveMap from '../components/LiveMap'
 import RouteMapModal from '../components/RouteMapModal'
 
-function DashboardPage() {
+function DashboardPage({ setActivePage }) {
   const historyData = useHistoryData()
   const stats = useDashboardStats()
   const [selectedRide, setSelectedRide] = useState(null)
@@ -40,32 +40,11 @@ function DashboardPage() {
               <h2>Live Map</h2>
               <span>This Month</span>
             </div>
+
             <div className="map-box">
               <LiveMap />
             </div>
           </div>
-
-          {/* <div className="section-card">
-            <div className="section-header">
-              <h2>User Analytics</h2>
-              <span>Read More</span>
-            </div>
-
-            <div className="analytics-grid">
-              <div className="analytics-card">
-                <h3>Users Overview</h3>
-                <p>Female users and male users analytics summary.</p>
-              </div>
-
-              <div className="analytics-card highlight">
-                <div className="circle">70%</div>
-                <div>
-                  <p>On average, 7 out of 10 users are</p>
-                  <strong>Female</strong>
-                </div>
-              </div>
-            </div>
-          </div> */}
         </div>
 
         <div className="right-column">
@@ -77,10 +56,10 @@ function DashboardPage() {
 
             <div className="history-table">
               <div className="history-head">
-                <span>Account Name</span>
-                <span>Device ID</span>
-                <span>Date</span>
-                <span>Distance</span>
+                <span className="col-account">Account Name</span>
+                <span className="col-device">Device ID</span>
+                <span className="col-date">Date</span>
+                <span className="col-distance">Distance</span>
               </div>
 
               <div className="history-body">
@@ -90,16 +69,21 @@ function DashboardPage() {
                     key={item.id}
                     onClick={() => setSelectedRide(item)}
                   >
-                    <span>{item.account}</span>
-                    <span>{item.device}</span>
-                    <span>{item.date}</span>
-                    <span className="distance">{item.distance}</span>
+                    <span className="col-account">{item.account}</span>
+                    <span className="col-device">{item.device}</span>
+                    <span className="col-date">{item.date}</span>
+                    <span className="col-distance distance">{item.distance}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="show-all">Show All Transaction</div>
+            <div
+              className="show-all"
+              onClick={() => setActivePage('history')}
+            >
+              Show All Transaction
+            </div>
           </div>
         </div>
       </section>
