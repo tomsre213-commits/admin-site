@@ -118,6 +118,7 @@ function useNotificationsData() {
             reportedBy: issueData.reportedBy || '',
             reportedByEmail: issueData.reportedByEmail || 'Unknown user',
             reportedAt: Number(issueData.reportedAt || 0),
+            rawIssues: issueData.issues || null,
           }
         })
         .sort((a, b) => b.reportedAt - a.reportedAt)
