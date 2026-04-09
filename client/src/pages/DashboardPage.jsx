@@ -54,18 +54,18 @@ function DashboardPage({ setActivePage }) {
               <span>All</span>
             </div>
 
-            <div className="history-table">
-              <div className="history-head">
+            <div className="dashboard-history-table">
+              <div className="dashboard-history-head">
                 <span className="col-account">Account Name</span>
                 <span className="col-device">Device ID</span>
                 <span className="col-date">Date</span>
                 <span className="col-distance">Distance</span>
               </div>
 
-              <div className="history-body">
+              <div className="dashboard-history-body">
                 {historyData.map((item) => (
                   <div
-                    className="history-row history-row-clickable"
+                    className="dashboard-history-row history-row-clickable"
                     key={item.id}
                     onClick={() => setSelectedRide(item)}
                   >

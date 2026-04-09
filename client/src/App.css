@@ -238,12 +238,17 @@ body {
   background: white;
   border-radius: 16px;
   padding: 10px;
+
+  flex: 1;                 /* 🔥 fill available space */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .history-head,
 .history-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1.4fr 0.9fr 1fr;
+  grid-template-columns: 2fr 1fr 1.4fr 0.9fr 1fr 1fr;
   gap: 16px;
   align-items: center;
 }
@@ -258,9 +263,9 @@ body {
 }
 
 .history-body {
-  max-height: 360px;
+  flex: 1;                 /* 🔥 take remaining height */
   overflow-y: auto;
-  scroll-behavior: smooth;
+  min-height: 0;           /* IMPORTANT FIX */
 }
 
 .history-row {
@@ -659,6 +664,9 @@ body {
 
 .page-container {
   padding: 20px 30px;
+  height: calc(100vh - 80px); /* adjust if needed */
+  display: flex;
+  flex-direction: column;
 }
 
 .page-header {
@@ -739,7 +747,7 @@ body {
 
   .history-head,
   .history-row {
-    grid-template-columns: 1.6fr 1fr 1.2fr 0.8fr 1fr;
+    grid-template-columns: 1.6fr 1fr 1.2fr 0.8fr 1fr 1fr;
     gap: 12px;
   }
 
@@ -747,4 +755,84 @@ body {
   .history-head {
     font-size: 14px;
   }
+}
+
+.col-delete {
+  text-align: center;
+}
+
+.delete-btn-red {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff4d4d, #d10000);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.15);
+}
+
+
+.delete-btn-red:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(255, 0, 0, 0.25);
+}
+
+.delete-history-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.delete-btn-red:active {
+  transform: scale(0.95);
+}
+
+.dashboard-history-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.dashboard-history-head,
+.dashboard-history-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.4fr 0.9fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.dashboard-history-head {
+  background: linear-gradient(90deg, #274838, #5fd538);
+  color: white;
+  padding: 16px 18px;
+  border-radius: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.dashboard-history-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.dashboard-history-row {
+  padding: 16px 18px;
+  border-bottom: 1px solid #ececec;
+  font-size: 15px;
+}
+
+.dashboard-history-row:hover {
+  background: #f8fbf7;
+}
+
+.dashboard-history-head span,
+.dashboard-history-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
