@@ -29,23 +29,38 @@ function NotificationsPage() {
       )
     }
 
+    if (filter === 'geofence') {
+      return notifications.filter(
+        (item) => item.notif === 'out' || item.type === 'Geofence Alert'
+      )
+    }
+
     return notifications
   }, [notifications, filter])
 
   const totalReports = notifications.length
+
   const pendingCount = notifications.filter(
     (item) => item.status.toLowerCase() === 'pending'
   ).length
+
   const highPriorityCount = notifications.filter(
     (item) => item.priority.toLowerCase() === 'high'
   ).length
 
-  const handleResolve = async (id) => {
+  const handleResolve = async (item) => {
     try {
-      setLoadingId(id)
-      await update(ref(db, `reported_issues/${id}`), {
-        status: 'resolved',
-      })
+      setLoadingId(item.id)
+
+      if (item.id.startsWith('geofence-')) {
+        await update(ref(db, `bikes/${item.bikeId}`), {
+          notif: 'in',
+        })
+      } else {
+        await update(ref(db, `reported_issues/${item.id}`), {
+          status: 'resolved',
+        })
+      }
     } catch (error) {
       console.error('Failed to resolve issue:', error)
       alert('Failed to mark as resolved.')
@@ -54,15 +69,22 @@ function NotificationsPage() {
     }
   }
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (item) => {
     const confirmed = window.confirm('Delete this report?')
     if (!confirmed) return
 
     try {
-      setLoadingId(id)
-      await remove(ref(db, `reported_issues/${id}`))
+      setLoadingId(item.id)
 
-      if (selectedNotification?.id === id) {
+      if (item.id.startsWith('geofence-')) {
+        await update(ref(db, `bikes/${item.bikeId}`), {
+          notif: 'not use',
+        })
+      } else {
+        await remove(ref(db, `reported_issues/${item.id}`))
+      }
+
+      if (selectedNotification?.id === item.id) {
         setSelectedNotification(null)
       }
     } catch (error) {
@@ -79,7 +101,7 @@ function NotificationsPage() {
         <div className="notification-summary">
           <div className="summary-card">
             <h3>{totalReports}</h3>
-            <p>Total Reports</p>
+            <p>Total Notifications</p>
           </div>
 
           <div className="summary-card">
@@ -94,12 +116,13 @@ function NotificationsPage() {
         </div>
 
         <div className="sort-filter">
-          <span>Sort by</span>
+          <span>Filter</span>
           <select value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="all">All</option>
             <option value="pending">Pending</option>
             <option value="resolved">Resolved</option>
             <option value="high">High Priority</option>
+            <option value="geofence">Geofence Alert</option>
           </select>
         </div>
       </div>
@@ -111,7 +134,7 @@ function NotificationsPage() {
               <div>
                 <h3>No notifications found</h3>
                 <p className="notification-type">
-                  No matching issue reports in Firebase.
+                  No matching notification in Firebase.
                 </p>
               </div>
             </div>
@@ -119,7 +142,12 @@ function NotificationsPage() {
         )}
 
         {filteredNotifications.map((item) => (
-          <div className="notification-card" key={item.id}>
+          <div
+            className={`notification-card ${
+              item.notif === 'out' ? 'alert-card' : ''
+            }`}
+            key={item.id}
+          >
             <div className="notification-header">
               <div>
                 <h3>{item.title}</h3>
@@ -130,6 +158,7 @@ function NotificationsPage() {
                 <span className={`priority-badge ${item.priority.toLowerCase()}`}>
                   {item.priority}
                 </span>
+
                 <span className={`status-badge status-${item.status.toLowerCase()}`}>
                   {item.status}
                 </span>
@@ -137,12 +166,24 @@ function NotificationsPage() {
             </div>
 
             <div className="notification-details">
-              <div><strong>Bike ID:</strong> {item.bikeId}</div>
-              <div><strong>Location:</strong> {item.location}</div>
-              <div><strong>Date:</strong> {item.date}</div>
-              <div><strong>Time:</strong> {item.time}</div>
-              <div><strong>Reported By:</strong> {item.reportedByEmail}</div>
-              <div><strong>Bike Name:</strong> {item.bikeName}</div>
+              <div>
+                <strong>Bike ID:</strong> {item.bikeId}
+              </div>
+              <div>
+                <strong>Location:</strong> {item.location}
+              </div>
+              <div>
+                <strong>Date:</strong> {item.date}
+              </div>
+              <div>
+                <strong>Time:</strong> {item.time}
+              </div>
+              <div>
+                <strong>Reported By:</strong> {item.reportedByEmail}
+              </div>
+              <div>
+                <strong>Bike Name:</strong> {item.bikeName}
+              </div>
             </div>
 
             <p className="notification-message">{item.message}</p>
@@ -157,8 +198,11 @@ function NotificationsPage() {
 
               <button
                 className="btn resolve-btn"
-                onClick={() => handleResolve(item.id)}
-                disabled={loadingId === item.id || item.status.toLowerCase() === 'resolved'}
+                onClick={() => handleResolve(item)}
+                disabled={
+                  loadingId === item.id ||
+                  item.status.toLowerCase() === 'resolved'
+                }
               >
                 {item.status.toLowerCase() === 'resolved'
                   ? 'Resolved'
@@ -169,7 +213,7 @@ function NotificationsPage() {
 
               <button
                 className="btn delete-btn"
-                onClick={() => handleDelete(item.id)}
+                onClick={() => handleDelete(item)}
                 disabled={loadingId === item.id}
               >
                 {loadingId === item.id ? 'Deleting...' : 'Delete'}

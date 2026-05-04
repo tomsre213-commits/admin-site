@@ -27,12 +27,8 @@ function formatDateTime(timestamp) {
 
 function extractIssueMessage(issues) {
   if (!issues) return 'No issue details provided.'
-
   if (typeof issues === 'string') return issues
-
-  if (Array.isArray(issues)) {
-    return issues.join(', ')
-  }
+  if (Array.isArray(issues)) return issues.join(', ')
 
   if (typeof issues === 'object') {
     const values = Object.values(issues)
@@ -84,49 +80,122 @@ function getTypeFromIssues(message) {
   return 'User Report'
 }
 
+function getBikeDisplayName(bikeId) {
+  if (!bikeId) return 'Bike'
+
+  const number = String(bikeId).replace('bike', '').padStart(3, '0')
+  return `Bike ${number}`
+}
+
 function useNotificationsData() {
   const [notifications, setNotifications] = useState([])
 
   useEffect(() => {
     const issuesRef = ref(db, 'reported_issues')
+    const bikesRef = ref(db, 'bikes')
 
-    const unsubscribe = onValue(issuesRef, (snapshot) => {
+    let issueNotifications = []
+    let geofenceNotifications = []
+
+    const updateNotifications = () => {
+      const combined = [
+        ...geofenceNotifications,
+        ...issueNotifications,
+      ].sort((a, b) => b.reportedAt - a.reportedAt)
+
+      setNotifications(combined)
+    }
+
+    const unsubscribeIssues = onValue(issuesRef, (snapshot) => {
       const data = snapshot.val()
 
       if (!data) {
-        setNotifications([])
+        issueNotifications = []
+        updateNotifications()
         return
       }
 
-      const formattedNotifications = Object.entries(data)
-        .map(([issueId, issueData]) => {
-          const message = extractIssueMessage(issueData.issues)
-          const { date, time } = formatDateTime(issueData.reportedAt)
+      issueNotifications = Object.entries(data).map(([issueId, issueData]) => {
+        const message = extractIssueMessage(issueData.issues)
+        const { date, time } = formatDateTime(issueData.reportedAt)
 
-          return {
-            id: issueId,
-            title: `${issueData.bikeName || issueData.bikeId || 'Bike'} reported issue`,
-            type: getTypeFromIssues(message),
-            bikeId: issueData.bikeId || 'N/A',
-            bikeName: issueData.bikeName || issueData.bikeId || 'N/A',
-            location: issueData.location || 'Location not provided',
-            date,
-            time,
-            priority: getPriorityFromIssues(message),
-            status: issueData.status || 'pending',
-            message,
-            reportedBy: issueData.reportedBy || '',
-            reportedByEmail: issueData.reportedByEmail || 'Unknown user',
-            reportedAt: Number(issueData.reportedAt || 0),
-            rawIssues: issueData.issues || null,
-          }
-        })
-        .sort((a, b) => b.reportedAt - a.reportedAt)
+        return {
+          id: issueId,
+          title: `${issueData.bikeName || issueData.bikeId || 'Bike'} reported issue`,
+          type: getTypeFromIssues(message),
+          bikeId: issueData.bikeId || 'N/A',
+          bikeName: issueData.bikeName || issueData.bikeId || 'N/A',
+          location: issueData.location || 'Location not provided',
+          date,
+          time,
+          priority: getPriorityFromIssues(message),
+          status: issueData.status || 'pending',
+          message,
+          reportedBy: issueData.reportedBy || '',
+          reportedByEmail: issueData.reportedByEmail || 'Unknown user',
+          reportedAt: Number(issueData.reportedAt || 0),
+          rawIssues: issueData.issues || null,
+          notif: issueData.notif || '',
+        }
+      })
 
-      setNotifications(formattedNotifications)
+      updateNotifications()
     })
 
-    return () => unsubscribe()
+    const unsubscribeBikes = onValue(bikesRef, (snapshot) => {
+      const data = snapshot.val()
+
+      if (!data) {
+        geofenceNotifications = []
+        updateNotifications()
+        return
+      }
+
+      geofenceNotifications = Object.entries(data)
+        // eslint-disable-next-line no-unused-vars
+        .filter(([_, bikeData]) => bikeData.notif === 'out')
+        .map(([bikeKey, bikeData]) => {
+          const bikeId = bikeData.bikeId || bikeKey
+          const bikeName = getBikeDisplayName(bikeId)
+          const reportedAt = Number(bikeData.timestamp || Date.now())
+          const { date, time } = formatDateTime(reportedAt)
+
+          return {
+            id: `geofence-${bikeKey}`,
+            title: `${bikeName} is outside MSU-IIT`,
+            type: 'Geofence Alert',
+            bikeId,
+            bikeName,
+            location:
+              bikeData.latitude && bikeData.longitude
+                ? `${bikeData.latitude}, ${bikeData.longitude}`
+                : 'Outside MSU-IIT',
+            date,
+            time,
+            priority: 'High',
+            status: 'pending',
+            message: `🚨 ${bikeName} is out of the parameter or outside of MSU-IIT.`,
+            reportedBy: 'System',
+            reportedByEmail: 'System Geofence',
+            reportedAt,
+            rawIssues: {
+              notif: bikeData.notif,
+              latitude: bikeData.latitude,
+              longitude: bikeData.longitude,
+              padlock: bikeData.padlock,
+              reserveUntil: bikeData.reserveUntil,
+            },
+            notif: bikeData.notif,
+          }
+        })
+
+      updateNotifications()
+    })
+
+    return () => {
+      unsubscribeIssues()
+      unsubscribeBikes()
+    }
   }, [])
 
   return notifications
