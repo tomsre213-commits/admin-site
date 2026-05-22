@@ -2,6 +2,62 @@ import { useEffect, useState } from 'react'
 import { ref, onValue } from 'firebase/database'
 import { db } from '../firebase'
 
+const msuIitPolygon = [
+  { lat: 8.2440, lng: 124.2430 },
+  { lat: 8.2440, lng: 124.2431 },
+  { lat: 8.2437, lng: 124.2433 },
+  { lat: 8.2435, lng: 124.2433 },
+  { lat: 8.2430, lng: 124.2439 },
+  { lat: 8.2432, lng: 124.2441 },
+  { lat: 8.2431, lng: 124.2442 },
+  { lat: 8.2431, lng: 124.2443 },
+  { lat: 8.2431, lng: 124.2444 },
+  { lat: 8.2431, lng: 124.2445 },
+  { lat: 8.2422, lng: 124.2443 },
+  { lat: 8.2419, lng: 124.2449 },
+  { lat: 8.2401, lng: 124.2446 },
+  { lat: 8.2399, lng: 124.2448 },
+  { lat: 8.2399, lng: 124.2449 },
+  { lat: 8.2394, lng: 124.2445 },
+  { lat: 8.2391, lng: 124.2443 },
+  { lat: 8.2394, lng: 124.2434 },
+  { lat: 8.2395, lng: 124.2430 },
+  { lat: 8.2400, lng: 124.2430 },
+  { lat: 8.2399, lng: 124.2428 },
+  { lat: 8.2400, lng: 124.2426 },
+  { lat: 8.2407, lng: 124.2427 },
+  { lat: 8.2410, lng: 124.2430 },
+  { lat: 8.2418, lng: 124.2432 },
+  { lat: 8.2418, lng: 124.2430 },
+  { lat: 8.2422, lng: 124.2430 },
+  { lat: 8.2423, lng: 124.2426 },
+  { lat: 8.2423, lng: 124.2421 },
+  { lat: 8.2430, lng: 124.2422 },
+  { lat: 8.2430, lng: 124.2424 },
+  { lat: 8.2435, lng: 124.2426 },
+]
+
+function isPointInsidePolygon(point, polygon) {
+  let inside = false
+  let j = polygon.length - 1
+
+  for (let i = 0; i < polygon.length; i++) {
+    const xi = polygon[i].lat
+    const yi = polygon[i].lng
+    const xj = polygon[j].lat
+    const yj = polygon[j].lng
+
+    const intersect =
+      yi > point.lng !== yj > point.lng &&
+      point.lat < ((xj - xi) * (point.lng - yi)) / (yj - yi) + xi
+
+    if (intersect) inside = !inside
+    j = i
+  }
+
+  return inside
+}
+
 function formatDateTime(timestamp) {
   if (!timestamp) {
     return {
@@ -152,8 +208,19 @@ function useNotificationsData() {
       }
 
       geofenceNotifications = Object.entries(data)
-        // eslint-disable-next-line no-unused-vars
-        .filter(([_, bikeData]) => bikeData.notif === 'out')
+        .filter(([_, bikeData]) => {
+          const lat = Number(bikeData.latitude)
+          const lng = Number(bikeData.longitude)
+
+          if (!lat || !lng) return false
+
+          const isInside = isPointInsidePolygon(
+            { lat, lng },
+            msuIitPolygon
+          )
+
+          return !isInside
+        })
         .map(([bikeKey, bikeData]) => {
           const bikeId = bikeData.bikeId || bikeKey
           const bikeName = getBikeDisplayName(bikeId)
@@ -166,26 +233,23 @@ function useNotificationsData() {
             type: 'Geofence Alert',
             bikeId,
             bikeName,
-            location:
-              bikeData.latitude && bikeData.longitude
-                ? `${bikeData.latitude}, ${bikeData.longitude}`
-                : 'Outside MSU-IIT',
+            location: `${bikeData.latitude}, ${bikeData.longitude}`,
             date,
             time,
             priority: 'High',
             status: 'pending',
-            message: `🚨 ${bikeName} is out of the parameter or outside of MSU-IIT.`,
+            message: `${bikeName} is out of the parameter or outside of MSU-IIT.`,
             reportedBy: 'System',
             reportedByEmail: 'System Geofence',
             reportedAt,
             rawIssues: {
-              notif: bikeData.notif,
+              notif: 'out',
               latitude: bikeData.latitude,
               longitude: bikeData.longitude,
               padlock: bikeData.padlock,
               reserveUntil: bikeData.reserveUntil,
             },
-            notif: bikeData.notif,
+            notif: 'out',
           }
         })
 

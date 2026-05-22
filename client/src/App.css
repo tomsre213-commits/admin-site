@@ -836,3 +836,19 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Geofence OUT Alert */
+.alert-card {
+  background: #fee2e2; /* light red */
+  border: 1px solid #ef4444;
+}
+
+/* Optional: stronger hover effect */
+.alert-card:hover {
+  background: #fecaca;
+}
+
+/* Optional: left border highlight */
+.alert-card {
+  border-left: 6px solid #dc2626;
+}
